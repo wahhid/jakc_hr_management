@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from pytz import timezone, utc
 from openerp import models, fields, api, _
-from odoo.exceptions import ValidationError, UserError, Warning
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT as OE_DTFORMAT
-from odoo.tools import DEFAULT_SERVER_DATE_FORMAT as OE_DFORMAT
+from openerp.exceptions import ValidationError,  Warning
+from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT as OE_DTFORMAT
+from openerp.tools import DEFAULT_SERVER_DATE_FORMAT as OE_DFORMAT
 
 import logging
 _logger = logging.getLogger(__name__)
