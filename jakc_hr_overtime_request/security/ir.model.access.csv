@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_overtime_officer,hr.overtime.officer,model_hr_overtime,hr.group_hr_user,1,1,1,1
+access_hr_overtime_employee,hr.overtime.employee,model_hr_overtime,base.group_user,1,1,1,1
+access_hr_overtime_department_manager,hr.overtime.dept.mngr,model_hr_overtime,jakc_hr_overtime_request.department_manager_overtime,1,1,1,1
+access_hr_overtime_multiple_officer,hr.overtime.multiple.officer,model_hr_overtime_multiple,hr.group_hr_user,1,1,1,1
+access_hr_overtime_multiple_employee,hr.overtime.multiple.emp,model_hr_overtime_multiple,base.group_user,1,1,1,1
+access_hr_overtime_multiple_department_manager,hr.overtime.multiple.depart,model_hr_overtime_multiple,jakc_hr_overtime_request.department_manager_overtime,1,1,1,1

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data noupdate="1">
+        <record id="department_manager_overtime" context="{'noadmin':True}" model="res.groups">
+            <field name="name">Department Manager (Overtime)</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="category_id" ref="base.module_category_usability"/>
+        </record>
+        
+        <record id="overtime_rule_for_managers" model="ir.rule">
+            <field name="name">Overtime - Managers</field>
+            <field name="model_id" ref="model_hr_overtime"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="groups" eval="[(4,ref('hr.group_hr_manager')), (4,ref('hr.group_hr_user'))]"/>
+        </record>
+        
+        <record id="overtime_rule_department_manager" model="ir.rule">
+            <field name="name">Overtime - Department Manager</field>
+            <field name="model_id" ref="model_hr_overtime"/>
+            <field name="domain_force">[('department_manager_id.user_id', '=', user.id)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="groups" eval="[(4,ref('jakc_hr_overtime_request.department_manager_overtime'))]"/>
+        </record>
+        
+        <record id="overtime_rule_employee" model="ir.rule">
+            <field name="name">Overtime - Employee</field>
+            <field name="model_id" ref="model_hr_overtime"/>
+            <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="groups" eval="[(4,ref('base.group_user'))]"/>
+        </record>
+        
+        <record id="multiple_overtime_rule_department_mngr" model="ir.rule">
+            <field name="name">Multiple Overtime - Managers</field>
+            <field name="model_id" ref="model_hr_overtime_multiple"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="groups" eval="[(4,ref('hr.group_hr_manager')), (4,ref('hr.group_hr_user'))]"/>
+        </record>
+        
+        <record id="multiple_overtime_rule_department_manager" model="ir.rule">
+            <field name="name">Multiple Overtime - Department Manager</field>
+            <field name="model_id" ref="model_hr_overtime_multiple"/>
+            <field name="domain_force">[('department_manager_id.user_id', '=', user.id)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="groups" eval="[(4,ref('jakc_hr_overtime_request.department_manager_overtime'))]"/>
+        </record>
+        
+    </data>
+</openerp>
