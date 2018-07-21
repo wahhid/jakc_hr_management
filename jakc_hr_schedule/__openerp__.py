@@ -42,6 +42,8 @@ Easily create, manage, and track employee schedules.
     },
     'data': [
         'views/jakc_hr_schedule_view.xml',
+        'views/hr_attendance_view.xml',
+        'views/resource_view.xml',
     ],
     'test': [
     ],

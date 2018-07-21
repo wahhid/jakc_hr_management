@@ -1,0 +1,50 @@
+<openerp>
+    <!-- Attendance -->
+    <record id="view_hr_attendance_form" model="ir.ui.view">
+        <field name="name">hr.attendance.form.inherit.schedule</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/*" position="before">
+                <header>
+                    <button name="trans_process" string="Process" type="object" class="oe_highlight"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+            </xpath>
+
+            <xpath expr="//field[@name='action_desc']" position="before">
+                <field name="schedule_detail_id"/>
+            </xpath>
+
+            <xpath expr="//field[@name='action_desc']" position="after">
+                <field name="alert_ids"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_tree" model="ir.ui.view">
+        <field name="name">hr.attendance.tree.inherit.schedule</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <field name="action" position="after">
+                <field name="state"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="hr_attendance_process_item_action" model="ir.actions.server">
+        <field name="name">Process</field>
+        <field name="model_id" ref="model_hr_attendance"/>
+        <field name="state">code</field>
+        <field name="code">action = object.trans_process()</field>
+    </record>
+
+    <record id="hr_attendance_process_item" model="ir.values">
+        <field eval="'client_action_multi'" name="key2"/>
+        <field eval="'hr.attendance'" name="model"/>
+        <field name="name">Process</field>
+        <field eval="'ir.actions.server,%d'%hr_attendance_process_item_action" name="value"/>
+    </record>
+</openerp>

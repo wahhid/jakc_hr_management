@@ -38,6 +38,14 @@ class WeekDays(models.Model):
     sequence = fields.Integer('Sequence',required=True,)
 
 
+class HrShift(models.Model):
+    _name = 'hr.shift'
+
+    name = fields.Char('Code', size=10, required=True)
+    time_start = fields.Float('Start', required=True)
+    time_end = fields.Float('End', required=True)
+
+
 class HrSchedule(models.Model):
     _name = 'hr.schedule'
 
@@ -51,7 +59,6 @@ class HrSchedule(models.Model):
     def onchange_employee_id(self):
         self.department_id = self.employee_id.department_id
 
-    @api.onchange('date_start')
     def onchange_employee_date_start(self):
         dStart = False
         edata = False
@@ -73,6 +80,17 @@ class HrSchedule(models.Model):
         else:
             self.date_start = False
             self.date_end = False
+
+    @api.onchange('date_start','date_end')
+    def onchange_employee_date_start(self):
+        if not self.date_start:
+            self.date_end = False
+            raise ValidationError('Please Define Start Date')
+        if self.date_start > self.date_end:
+            self.date_end = False
+            raise ValidationError('End Date must be greater than Start Date')
+        if self.date_start and self.date_end:
+            self.name = self.employee_id.name + ': ' + self.date_start + ' - ' + self.date_end
 
     @api.one
     def create_details(self):
@@ -179,36 +197,35 @@ class HrSchedule(models.Model):
     company_id = fields.Many2one('res.company', 'Company', readonly=True)
     employee_id = fields.Many2one('hr.employee', 'Employee', required=True, readonly=True,states = {'draft': [('readonly', False)]})
     template_id = fields.Many2one('resource.calendar', 'Schedule Template',readonly=True, states={'draft': [('readonly', False)]},)
-    detail_ids = fields.One2many('hr.schedule.detail','schedule_id','Schedule Detail',readonly=True,states={'draft': [('readonly', False)]},)
     state = fields.Selection(AVAILABLE_SCHEDULE_STATE,'State',required=True,readonly=True,default='draft')
     date_start =  fields.Date('Start Date',required=True,readonly=True,states={'draft': [('readonly', False)]})
     date_end = fields.Date('End Date',required=True,readonly=True,states={'draft': [('readonly', False)]})
     department_id = fields.Many2one('hr.department','Department', relation='employee_id.department_id', readonly=True, store=True)
+    detail_ids = fields.One2many('hr.schedule.detail','schedule_id','Schedule Detail',readonly=True,states={'draft': [('readonly', False)]},)
 
     @api.model
     def create(self, vals):
-        res = super(HrSchedule, self).create(vals)
-        res.create_details()
-        return res
+        if not self._schedule_detail_date():
+            res = super(HrSchedule, self).create(vals)
+            res.create_details()
+            return res
+        else:
+            raise ValidationError('You cannot have schedules that overlap!')
 
-    def _schedule_date(self):
-        for shd in self:
-            self.env.cr.execute("""\
+    @api.one
+    def _schedule_detail_date(self):
+        self.env.cr.execute("""\
                         SELECT id
-                        FROM hr_schedule
-                        WHERE (date_start <= %s and %s <= date_end)
-                          AND employee_id=%s
-                          AND id <> %s""", (shd.date_end, shd.date_start, shd.employee_id.id, shd.id))
-            if self.env.cr.fetchall():
-                return False
+                        FROM hr_schedule_detail
+                        WHERE (day <= %s and %s <= day)
+                          AND employee_id=%s""", (self.date_end, self.date_start, self.employee_id.id))
+        if self.env.cr.fetchall():
+            return False
         return True
 
-    def _rec_message(self):
-        return _('You cannot have schedules that overlap!')
-
-    _constraints = [
-        (_schedule_date, _rec_message, ['date_start', 'date_end']),
-    ]
+    #_constraints = [
+    #    (_schedule_date, 'You cannot have schedules that overlap!', ['date_start', 'date_end']),
+    #]
 
 
 class HrScheduleDetail(models.Model):
@@ -216,40 +233,18 @@ class HrScheduleDetail(models.Model):
     _description = "Schedule Detail"
     _order = 'schedule_id, date_start, dayofweek'
 
-    name = fields.Char(
-        "Name",
-        size=64,
-        required=True,
-    )
-    dayofweek = fields.Selection(
-        DAYOFWEEK_SELECTION,
-        'Day of Week',
-        required=True,
-        index=True,
-    )
-    date_start = fields.Datetime(
-        'Start Date and Time',
-        required=True,
-    )
-    date_end = fields.Datetime(
-        'End Date and Time',
-        required=True,
-    )
-    day = fields.Date(
-        'Day',
-        required=True,
-        index=True,
-    )
-    schedule_id = fields.Many2one(
-        'hr.schedule',
-        'Schedule',
-        ondelete='cascade',
-        required=True,
-    )
+    name = fields.Char("Name",size=64,required=True,)
+    dayofweek = fields.Selection(DAYOFWEEK_SELECTION,'Day of Week',required=True,index=True,)
+    shift_id = fields.Many2one('hr.shift','Shift', required=False)
+    date_start = fields.Datetime('Start Date and Time',required=True,)
+    date_end = fields.Datetime('End Date and Time',required=True,)
+    actual_date_start = fields.Datetime('Actual Start Date and Time',required=True,)
+    actual_date_end = fields.Datetime('Actual End Date and Time',required=True,)
+    day = fields.Date('Day',required=True,index=True,)
+    schedule_id = fields.Many2one('hr.schedule','Schedule',ondelete='cascade',required=True)
     department_id = fields.Many2one('hr.department', 'Department', related='schedule_id.department_id', store=True)
-
     employee_id = fields.Many2one('hr.employee','Employee', related='schedule_id.employee_id', store=True, index=True)
-
+    alert_ids = fields.One2many('hr.schedule.alert', 'sched_detail_id', 'Exceptions', readonly=True)
     state = fields.Selection(
         [
             ('draft', 'Draft'),
@@ -340,16 +335,15 @@ class HrScheduleAlertRule(models.Model):
             _logger.info(rule.name)
             if rule.code == 'MISSPUNCHIN':
                 _logger.info('CHECK MISSPUNCHIN')
-                if not att.check_in:
+                if not att.schedule_detail_id.actual_date_start:
                     _logger.info('MISSPUNCHIN')
                     res.append({'attendance_id': att.id, 'rule_id': rule.id})
 
             elif rule.code == 'MISSPUNCHOUT':
                 _logger.info('CHECK MISSPUNCHOUT')
-                if not att.check_out:
+                if not att.schedule_detail_id.actual_date_end:
                     _logger.info('MISSPUNCHOUT')
                     res.append({'attendance_id': att.id, 'rule_id': rule.id})
-
 
             elif rule.code == 'UNSCHEDATT':
                 _logger.info('CHECK UNSCHEDATT')
@@ -357,18 +351,17 @@ class HrScheduleAlertRule(models.Model):
                     _logger.info('UNSCHEDATT')
                     res.append({'attendance_id': att.id, 'rule_id': rule.id})
 
-
             elif rule.code == 'LVEARLY':
                 _logger.info('CHECK LVEARLY')
                 schedule_detail_id = att.schedule_detail_id
-                if schedule_detail_id.date_end > att.check_out:
+                if att.schedule_detail_id.date_end > att.schedule_detail_id.actual_date_end:
                     _logger.info('LVEARLY')
                     res.append({'attendance_id': att.id, 'rule_id': rule.id})
 
             elif rule.code == 'INLATE':
                 _logger.info('CHECK INLATE')
                 schedule_detail_id = att.schedule_detail_id
-                if schedule_detail_id.date_start < att.check_in:
+                if att.schedule_detail_id.date_start < att.schedule_detail_id.actual_date_start:
                     _logger.info('INLATE')
                     res.append({'attendance_id': att.id, 'rule_id': rule.id})
         return res
@@ -402,6 +395,7 @@ class HrScheduleAlert(models.Model):
             required=True,
             readonly=True,
     )
+    attendance_id = fields.Many2one('hr.attendance','Attendance #')
     punch_id = fields.Many2one(
             'hr.attendance',
             'Triggering Punch',
@@ -455,40 +449,6 @@ class HrScheduleAlert(models.Model):
             ),
         },
     }
-
-
-class HrAttendance(models.Model):
-
-    _name = 'hr.attendance'
-    _inherit = 'hr.attendance'
-
-
-    @api.one
-    def trans_process(self):
-        hr_schedule_alert_rule_obj = self.env['hr.schedule.alert.rule']
-        hr_schedule_alert_obj  = self.env['hr.schedule.alert']
-        for att in self:
-            _logger.info("Check Rule By Punch")
-            rules = hr_schedule_alert_rule_obj.check_rule_by_punch(att)
-            att.alert_ids.unlink()
-            for rule in rules:
-                #Create Alert
-                vals = {}
-                vals.update({'name':datetime.now()})
-                vals.update({'rule_id':rule['rule_id']})
-                vals.update({'punch_id':rule['attendance_id']})
-                vals.update({'sched_detail_id':att.schedule_detail_id.id})
-                vals.update({'employee_id': att.employee_id.id})
-                hr_schedule_alert_obj.create(vals)
-
-            if len(rules) > 0:
-                self.state = 'exception'
-
-    day = fields.Date('Date', readonly=True)
-    schedule_detail_id = fields.Many2one('hr.schedule.detail','Schedule', readonly=True)
-    punch_ids = fields.One2many('hr.punch', 'attendance_id', 'Punchs', readonly=True)
-    alert_ids = fields.One2many('hr.schedule.alert', 'punch_id', 'Exceptions', readonly=True)
-    state = fields.Selection([('open','Open'),('exception','Exception'),('locked','Locked'),('lockede','Lock with Exception')],'Status',default='open')
 
 
 class HrPunch(models.Model):

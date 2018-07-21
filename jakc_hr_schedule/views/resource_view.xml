@@ -1,0 +1,25 @@
+<openerp>
+    <data>
+        <record id="view_resource_calendar_attendance_inherit_form" model="ir.ui.view">
+            <field name="name">view.resource.calendar.attendance.inherit.form</field>
+            <field name="model">resource.calendar.attendance</field>
+            <field name="inherit_id" ref="resource.view_resource_calendar_attendance_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='dayofweek']">
+                    <field name="shift"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_resource_calendar_attendance_inherit_tree" model="ir.ui.view">
+            <field name="name">view.resource.calendar.attendance.inherit.tree</field>
+            <field name="model">resource.calendar.attendance</field>
+             <field name="inherit_id" ref="resource.view_resource_calendar_attendance_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='dayofweek']">
+                    <field name="shift"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</openerp>

@@ -1,1 +1,3 @@
 import jakc_hr_schedule
+import hr_attendance
+import resource
